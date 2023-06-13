@@ -1,0 +1,54 @@
+﻿services:
+  webapi:
+    restart: unless-stopped
+    image: webapi
+    networks:
+      - client-server-app
+    ports:
+      - "3000:80"
+    build:
+      context: .
+      dockerfile: WebApi/Dockerfile
+    profiles: ["debug", "publish"]
+    depends_on:
+      db:
+          condition: service_healthy
+  phpmyadmin:
+    container_name: php_my_admin
+    depends_on:
+      - db
+    networks:
+      - client-server-app
+    environment:
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+    image: phpmyadmin
+    ports:
+      - 8080:80
+    profiles:
+      - debug
+    restart: unless-stopped
+  db:
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 20s
+      retries: 10
+    image: mysql:5.7
+    ports:
+      - "5000:3306"
+    networks:
+      - client-server-app
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345
+      MYSQL_DATABASE: persons
+      MYSQL_USER: dbuser
+      MYSQL_PASSWORD: dbuserpassword
+    volumes:
+      - dbdata:/var/lib/mysql
+    profiles: ["publish", "debug"]
+    restart: unless-stopped
+volumes:
+  dbdata:
+networks:
+  client-server-app:
